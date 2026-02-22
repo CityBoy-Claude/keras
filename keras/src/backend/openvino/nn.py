@@ -677,11 +677,9 @@ def binary_crossentropy(target, output, from_logits=False):
     minus_log_prob = ov_opset.log(minus_output).output(0)
     result = ov_opset.multiply(target, log_prob).output(0)
     minus_result = ov_opset.multiply(minus_target, minus_log_prob).output(0)
-    result = ov_opset.add(result, minus_result).output(0)
-    loss = ov_opset.reduce_mean(result, -1).output(0)
-    loss = ov_opset.negative(loss).output(0)
-    loss = ov_opset.unsqueeze(loss, -1).output(0)
-    return OpenVINOKerasTensor(loss)
+    bce = ov_opset.add(result, minus_result).output(0)
+    bce = ov_opset.negative(bce).output(0)
+    return OpenVINOKerasTensor(bce)
 
 
 def moments(x, axes, keepdims=False, synchronized=False):
