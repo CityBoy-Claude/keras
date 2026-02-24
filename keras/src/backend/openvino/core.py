@@ -768,15 +768,47 @@ def scan(f, init, xs=None, length=None, reverse=False, unroll=1):
 
 
 def scatter(indices, values, shape):
-    raise NotImplementedError(
-        "`scatter` is not supported with openvino backend"
-    )
+    indices = get_ov_output(indices)
+    values = get_ov_output(values)
+
+    # Create a zeros tensor of the target shape.
+    shape_ov = get_ov_output(shape, ov_type=Type.i64)
+    zero_const = ov_opset.constant(0, values.get_element_type())
+    zeros = ov_opset.broadcast(zero_const, shape_ov).output(0)
+
+    return scatter_update(zeros, indices, values, "add")
 
 
 def scatter_update(inputs, indices, updates, reduction=None):
-    raise NotImplementedError(
-        "`scatter_update` is not supported with openvino backend"
-    )
+    inputs = get_ov_output(inputs)
+    indices = get_ov_output(indices)
+    updates = get_ov_output(updates)
+
+    if inputs.get_element_type() != updates.get_element_type():
+        # Conver integer type to float type
+        if inputs.get_element_type().is_integral():
+            inputs = ov_opset.convert(
+                inputs, updates.get_element_type()
+            ).output(0)
+        else:
+            updates = ov_opset.convert(
+                updates, inputs.get_element_type()
+            ).output(0)
+
+    # Map Keras reduction strings to OpenVINO ScatterNDUpdate reduction strings.
+    # OpenVINO Opset 15 supports: "none", "sum", "sub", "prod", "min", "max".
+    reduction_map = {
+        "add": "sum",
+        "mul": "prod",
+        "max": "max",
+        "min": "min",
+    }
+    ov_reduction = reduction_map.get(reduction, "none")
+
+    result = ov_opset.scatter_nd_update(
+        inputs, indices, updates, reduction=ov_reduction
+    ).output(0)
+    return OpenVINOKerasTensor(result)
 
 
 def slice(inputs, start_indices, shape):
