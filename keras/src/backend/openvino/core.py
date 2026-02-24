@@ -786,18 +786,16 @@ def scatter_update(inputs, indices, updates, reduction=None):
 
     inputs, updates = align_operand_types(inputs, updates, "scatter_update")
 
-    # Map Keras reduction strings to OpenVINO ScatterNDUpdate reduction strings.
+    # Map Keras reduction to OpenVINO ScatterNDUpdate reduction.
     # OpenVINO Opset 15 supports: "none", "sum", "sub", "prod", "min", "max".
-    reduction_map = {
-        "add": "sum",
-        "mul": "prod",
-        "max": "max",
-        "min": "min",
-    }
     if reduction is None:
         ov_reduction = "none"
-    elif reduction in reduction_map:
-        ov_reduction = reduction_map[reduction]
+    elif reduction == "add":
+        ov_reduction = "sum"
+    elif reduction == "mul":
+        ov_reduction = "prod"
+    elif reduction in ("max", "min"):
+        ov_reduction = reduction
     else:
         raise ValueError(f"Unsupported reduction: {reduction}")
 
