@@ -772,9 +772,9 @@ def scatter(indices, values, shape):
     values = get_ov_output(values)
 
     # Create a zeros tensor of the target shape.
-    shape_ov = get_ov_output(shape, ov_type=Type.i64)
+    shape = get_ov_output(shape)
     zero_const = ov_opset.constant(0, values.get_element_type())
-    zeros = ov_opset.broadcast(zero_const, shape_ov).output(0)
+    zeros = ov_opset.broadcast(zero_const, shape).output(0)
 
     return scatter_update(zeros, indices, values, "add")
 
@@ -784,16 +784,7 @@ def scatter_update(inputs, indices, updates, reduction=None):
     indices = get_ov_output(indices)
     updates = get_ov_output(updates)
 
-    if inputs.get_element_type() != updates.get_element_type():
-        # Conver integer type to float type
-        if inputs.get_element_type().is_integral():
-            inputs = ov_opset.convert(
-                inputs, updates.get_element_type()
-            ).output(0)
-        else:
-            updates = ov_opset.convert(
-                updates, inputs.get_element_type()
-            ).output(0)
+    inputs, updates = align_operand_types(inputs, updates, "scatter_update")
 
     # Map Keras reduction strings to OpenVINO ScatterNDUpdate reduction strings.
     # OpenVINO Opset 15 supports: "none", "sum", "sub", "prod", "min", "max".
@@ -803,7 +794,12 @@ def scatter_update(inputs, indices, updates, reduction=None):
         "max": "max",
         "min": "min",
     }
-    ov_reduction = reduction_map.get(reduction, "none")
+    if reduction is None:
+        ov_reduction = "none"
+    elif reduction in reduction_map:
+        ov_reduction = reduction_map[reduction]
+    else:
+        raise ValueError(f"Unsupported reduction: {reduction}")
 
     result = ov_opset.scatter_nd_update(
         inputs, indices, updates, reduction=ov_reduction
