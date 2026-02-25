@@ -1,6 +1,7 @@
 import openvino.opset15 as ov_opset
 from openvino import Type
 
+import keras.src.backend.openvino.numpy as onp
 from keras.src import backend
 from keras.src.backend.openvino.core import OPENVINO_DTYPES
 from keras.src.backend.openvino.core import OpenVINOKerasTensor
@@ -846,21 +847,6 @@ def dot_product_attention(
 
 
 def unfold(input, kernel_size, dilation=1, padding=0, stride=1):
-    """OpenVINO implementation of Unfold.
-    Extract sliding local blocks from a **NCHW** batched image tensor.
-
-    Args:
-        input: 4-D tensor, shape (N, C, H, W)  **required**.
-        kernel_size: int or (kH, kW)
-        dilation: int or (dH, dW), default 1
-        padding: int or (pH, pW), default 0
-        stride: int or (sH, sW), default 1
-
-    Returns:
-        3-D tensor, shape (N, C*kH*kW, L)
-    """
-    import keras.src.backend.openvino.numpy as onp
-
     def _pair(x):
         return (x, x) if isinstance(x, int) else x
 
