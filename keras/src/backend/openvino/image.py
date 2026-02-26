@@ -1,7 +1,48 @@
+import openvino.opset15 as ov_opset
+
+from keras.src import backend
+from keras.src.backend.openvino.core import OpenVINOKerasTensor
+from keras.src.backend.openvino.core import get_ov_output
+
+
 def rgb_to_grayscale(images, data_format=None):
-    raise NotImplementedError(
-        "`rgb_to_grayscale` is not supported with openvino backend"
-    )
+    images = get_ov_output(images)
+    data_format = backend.standardize_data_format(data_format)
+    if images.get_partial_shape().rank not in (3, 4):
+        raise ValueError(
+            "Invalid images rank: expected rank 3 (single image) "
+            "or rank 4 (batch of images). Received input with shape: "
+            f"images.shape={images.shape}"
+        )
+    channel_axis = -3 if data_format == "channels_first" else -1
+    if images.shape[channel_axis] not in (1, 3):
+        raise ValueError(
+            "Invalid channel size: expected 3 (RGB) or 1 (Grayscale). "
+            f"Received input with shape: images.shape={images.shape}"
+        )
+
+    if images.shape[channel_axis] == 3:
+        original_type = images.get_element_type()
+        rgb_weights = ov_opset.constant(
+            [0.2989, 0.5870, 0.1140], dtype=original_type
+        ).output(0)
+        if data_format == "channels_first":
+            rgb_weights = ov_opset.unsqueeze(rgb_weights, axes=[-2, -1]).output(
+                0
+            )
+        grayscales = ov_opset.multiply(images, rgb_weights).output(0)
+        grayscales = ov_opset.reduce_sum(
+            grayscales, reduction_axes=[channel_axis]
+        ).output(0)
+        grayscales = ov_opset.unsqueeze(grayscales, axes=[channel_axis]).output(
+            0
+        )
+        if grayscales.get_element_type() != original_type:
+            # Type of grayscales may be changed after unsqueeze, so we need to
+            # convert it back to the original type.
+            grayscales = ov_opset.convert(grayscales, original_type).output(0)
+
+    return OpenVINOKerasTensor(grayscales)
 
 
 def resize(
