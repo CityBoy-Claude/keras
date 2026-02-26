@@ -45,6 +45,101 @@ def rgb_to_grayscale(images, data_format=None):
     return OpenVINOKerasTensor(grayscales)
 
 
+def rgb_to_hsv(images, data_format=None):
+    dtype = images.dtype
+    images = get_ov_output(images)
+    ov_type = images.get_element_type()
+    data_format = backend.standardize_data_format(data_format)
+    channels_axis = -1 if data_format == "channels_last" else -3
+    if len(images.shape) not in (3, 4):
+        raise ValueError(
+            "Invalid images rank: expected rank 3 (single image) "
+            "or rank 4 (batch of images). Received input with shape: "
+            f"images.shape={images.shape}"
+        )
+    if not backend.is_float_dtype(dtype):
+        raise ValueError(
+            "Invalid images dtype: expected float dtype. "
+            f"Received: images.dtype={dtype}"
+        )
+    eps = ov_opset.constant(backend.epsilon(), dtype=ov_type).output(0)
+    images = ov_opset.select(
+        ov_opset.less(ov_opset.abs(images), eps),
+        ov_opset.constant(0.0, dtype=ov_type),
+        images,
+    ).output(0)
+    rgb_channels = ov_opset.split(images, axis=channels_axis, num_splits=3)
+    r, g, b = (
+        rgb_channels.output(0),
+        rgb_channels.output(1),
+        rgb_channels.output(2),
+    )
+
+    def rgb_planes_to_hsv_planes(r, g, b):
+        value = ov_opset.maximum(ov_opset.maximum(r, g), b).output(0)
+        minimum = ov_opset.minimum(ov_opset.minimum(r, g), b).output(0)
+        range_ = ov_opset.subtract(value, minimum).output(0)
+
+        safe_value = ov_opset.select(
+            ov_opset.greater(value, ov_opset.constant(0.0, dtype=ov_type)),
+            value,
+            ov_opset.constant(1.0, dtype=ov_type),
+        ).output(0)
+        safe_range = ov_opset.select(
+            ov_opset.greater(range_, ov_opset.constant(0.0, dtype=ov_type)),
+            range_,
+            ov_opset.constant(1.0, dtype=ov_type),
+        ).output(0)
+
+        saturation = ov_opset.select(
+            ov_opset.greater(value, ov_opset.constant(0.0, dtype=ov_type)),
+            ov_opset.divide(range_, safe_value),
+            ov_opset.constant(0.0, dtype=ov_type),
+        ).output(0)
+        norm = ov_opset.divide(
+            ov_opset.constant(1.0, dtype=ov_type),
+            ov_opset.multiply(
+                ov_opset.constant(6.0, dtype=ov_type), safe_range
+            ),
+        ).output(0)
+
+        hue = ov_opset.select(
+            ov_opset.equal(value, g),
+            ov_opset.add(
+                ov_opset.multiply(norm, ov_opset.subtract(b, r)),
+                ov_opset.constant(2.0 / 6.0, dtype=ov_type),
+            ),
+            ov_opset.add(
+                ov_opset.multiply(norm, ov_opset.subtract(r, g)),
+                ov_opset.constant(4.0 / 6.0, dtype=ov_type),
+            ),
+        ).output(0)
+        hue = ov_opset.select(
+            ov_opset.equal(value, r),
+            ov_opset.multiply(norm, ov_opset.subtract(g, b)),
+            hue,
+        ).output(0)
+        hue = ov_opset.select(
+            ov_opset.greater(range_, ov_opset.constant(0.0, dtype=ov_type)),
+            hue,
+            ov_opset.constant(0.0, dtype=ov_type),
+        ).output(0)
+        hue = ov_opset.add(
+            hue,
+            ov_opset.convert(
+                ov_opset.less(hue, ov_opset.constant(0.0, dtype=ov_type)),
+                ov_type,
+            ),
+        ).output(0)
+        return hue, saturation, value
+
+    images = ov_opset.concat(
+        rgb_planes_to_hsv_planes(r, g, b), axis=channels_axis
+    ).output(0)
+    images = ov_opset.convert(images, ov_type).output(0)
+    return OpenVINOKerasTensor(images)
+
+
 def resize(
     image,
     size,

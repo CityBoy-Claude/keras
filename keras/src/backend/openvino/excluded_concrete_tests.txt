@@ -130,7 +130,6 @@ ImageOpsCorrectnessTest::test_map_coordinates
 ImageOpsCorrectnessTest::test_pad_images
 ImageOpsCorrectnessTest::test_perspective_transform
 ImageOpsCorrectnessTest::test_resize
-ImageOpsCorrectnessTest::test_rgb_to_hsv
 ImageOpsCorrectnessTest::test_scale_and_translate
 ImageOpsDtypeTest::test_affine_transform
 ImageOpsDtypeTest::test_elastic_transform
@@ -139,7 +138,6 @@ ImageOpsDtypeTest::test_hsv_to_rgb
 ImageOpsDtypeTest::test_map_coordinates
 ImageOpsDtypeTest::test_perspective_transform
 ImageOpsDtypeTest::test_resize
-ImageOpsDtypeTest::test_rgb_to_hsv
 ImageOpsDtypeTest::test_scale_and_translate
 ImageOpsBehaviorTests::test_affine_transform
 ImageOpsBehaviorTests::test_elastic_transform
@@ -148,4 +146,3 @@ ImageOpsBehaviorTests::test_hsv_to_rgb
 ImageOpsBehaviorTests::test_map_coordinates
 ImageOpsBehaviorTests::test_perspective_transform
 ImageOpsBehaviorTests::test_resize
-ImageOpsBehaviorTests::test_rgb_to_hsv
