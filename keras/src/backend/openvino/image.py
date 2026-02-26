@@ -140,6 +140,82 @@ def rgb_to_hsv(images, data_format=None):
     return OpenVINOKerasTensor(images)
 
 
+def hsv_to_rgb(images, data_format=None):
+    dtype = images.dtype
+    images = get_ov_output(images)
+    ov_type = images.get_element_type()
+    data_format = backend.standardize_data_format(data_format)
+    channels_axis = -1 if data_format == "channels_last" else -3
+    if len(images.shape) not in (3, 4):
+        raise ValueError(
+            "Invalid images rank: expected rank 3 (single image) "
+            "or rank 4 (batch of images). Received input with shape: "
+            f"images.shape={images.shape}"
+        )
+    if not backend.is_float_dtype(dtype):
+        raise ValueError(
+            "Invalid images dtype: expected float dtype. "
+            f"Received: images.dtype={dtype}"
+        )
+    hsv_channels = ov_opset.split(images, axis=channels_axis, num_splits=3)
+    hue, saturation, value = (
+        hsv_channels.output(0),
+        hsv_channels.output(1),
+        hsv_channels.output(2),
+    )
+
+    def hsv_planes_to_rgb_planes(hue, saturation, value):
+        dh = ov_opset.multiply(
+            ov_opset.mod(hue, ov_opset.constant(1.0, dtype=ov_type)),
+            ov_opset.constant(6.0, dtype=ov_type),
+        ).output(0)
+        one_const = ov_opset.constant(1.0, dtype=ov_type).output(0)
+        two_const = ov_opset.constant(2.0, dtype=ov_type).output(0)
+        three_const = ov_opset.constant(3.0, dtype=ov_type).output(0)
+        four_const = ov_opset.constant(4.0, dtype=ov_type).output(0)
+        dr = ov_opset.subtract(
+            ov_opset.abs(ov_opset.subtract(dh, three_const)), one_const
+        ).output(0)
+        dr = ov_opset.clamp(dr, 0.0, 1.0).output(0)
+        dg = ov_opset.subtract(
+            two_const, ov_opset.abs(ov_opset.subtract(dh, two_const))
+        ).output(0)
+        dg = ov_opset.clamp(dg, 0.0, 1.0).output(0)
+        db = ov_opset.subtract(
+            two_const, ov_opset.abs(ov_opset.subtract(dh, four_const))
+        ).output(0)
+        db = ov_opset.clamp(db, 0.0, 1.0).output(0)
+        one_minus_saturation = ov_opset.subtract(one_const, saturation).output(
+            0
+        )
+
+        red = ov_opset.multiply(
+            value,
+            ov_opset.add(
+                one_minus_saturation, ov_opset.multiply(saturation, dr)
+            ),
+        )
+        green = ov_opset.multiply(
+            value,
+            ov_opset.add(
+                one_minus_saturation, ov_opset.multiply(saturation, dg)
+            ),
+        )
+        blue = ov_opset.multiply(
+            value,
+            ov_opset.add(
+                one_minus_saturation, ov_opset.multiply(saturation, db)
+            ),
+        )
+        return red, green, blue
+
+    images = ov_opset.concat(
+        hsv_planes_to_rgb_planes(hue, saturation, value), axis=channels_axis
+    ).output(0)
+    images = ov_opset.convert(images, ov_type).output(0)
+    return OpenVINOKerasTensor(images)
+
+
 def resize(
     image,
     size,

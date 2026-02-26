@@ -125,7 +125,6 @@ ImageOpsCorrectnessTest::test_crop_images
 ImageOpsCorrectnessTest::test_elastic_transform
 ImageOpsCorrectnessTest::test_extract_patches
 ImageOpsCorrectnessTest::test_gaussian_blur
-ImageOpsCorrectnessTest::test_hsv_to_rgb
 ImageOpsCorrectnessTest::test_map_coordinates
 ImageOpsCorrectnessTest::test_pad_images
 ImageOpsCorrectnessTest::test_perspective_transform
@@ -134,7 +133,6 @@ ImageOpsCorrectnessTest::test_scale_and_translate
 ImageOpsDtypeTest::test_affine_transform
 ImageOpsDtypeTest::test_elastic_transform
 ImageOpsDtypeTest::test_gaussian_blur
-ImageOpsDtypeTest::test_hsv_to_rgb
 ImageOpsDtypeTest::test_map_coordinates
 ImageOpsDtypeTest::test_perspective_transform
 ImageOpsDtypeTest::test_resize
@@ -142,7 +140,6 @@ ImageOpsDtypeTest::test_scale_and_translate
 ImageOpsBehaviorTests::test_affine_transform
 ImageOpsBehaviorTests::test_elastic_transform
 ImageOpsBehaviorTests::test_gaussian_blur
-ImageOpsBehaviorTests::test_hsv_to_rgb
 ImageOpsBehaviorTests::test_map_coordinates
 ImageOpsBehaviorTests::test_perspective_transform
 ImageOpsBehaviorTests::test_resize
