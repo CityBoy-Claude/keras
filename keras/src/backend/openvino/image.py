@@ -136,7 +136,6 @@ def rgb_to_hsv(images, data_format=None):
     images = ov_opset.concat(
         rgb_planes_to_hsv_planes(r, g, b), axis=channels_axis
     ).output(0)
-    images = ov_opset.convert(images, ov_type).output(0)
     return OpenVINOKerasTensor(images)
 
 
@@ -212,7 +211,6 @@ def hsv_to_rgb(images, data_format=None):
     images = ov_opset.concat(
         hsv_planes_to_rgb_planes(hue, saturation, value), axis=channels_axis
     ).output(0)
-    images = ov_opset.convert(images, ov_type).output(0)
     return OpenVINOKerasTensor(images)
 
 

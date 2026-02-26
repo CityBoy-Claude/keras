@@ -1040,7 +1040,6 @@ class ImageOpsCorrectnessTest(testing.TestCase):
         out = kimage.rgb_to_grayscale(x)
         ref_out = tf.image.rgb_to_grayscale(x)
         self.assertEqual(tuple(out.shape), tuple(ref_out.shape))
-        print(ref_out, out)
         self.assertAllClose(ref_out.numpy(), out)
 
         x = np.random.random((2, 50, 50, 3)).astype("float32") * 255
@@ -1109,7 +1108,6 @@ class ImageOpsCorrectnessTest(testing.TestCase):
         out = kimage.hsv_to_rgb(x)
         ref_out = tf.image.hsv_to_rgb(x)
         self.assertEqual(tuple(out.shape), tuple(ref_out.shape))
-        print(ref_out.numpy(), out.numpy())
         self.assertAllClose(ref_out.numpy(), out)
 
         x = np.random.random((2, 50, 50, 3)).astype("float32")
