@@ -164,6 +164,15 @@ def hsv_to_rgb(images, data_format=None):
     )
 
     def hsv_planes_to_rgb_planes(hue, saturation, value):
+        def channel_value(channel_delta, one_minus_saturation):
+            return ov_opset.multiply(
+                value,
+                ov_opset.add(
+                    one_minus_saturation,
+                    ov_opset.multiply(saturation, channel_delta),
+                ),
+            )
+
         dh = ov_opset.multiply(
             ov_opset.mod(hue, ov_opset.constant(1.0, dtype=ov_type)),
             ov_opset.constant(6.0, dtype=ov_type),
@@ -188,24 +197,9 @@ def hsv_to_rgb(images, data_format=None):
             0
         )
 
-        red = ov_opset.multiply(
-            value,
-            ov_opset.add(
-                one_minus_saturation, ov_opset.multiply(saturation, dr)
-            ),
-        )
-        green = ov_opset.multiply(
-            value,
-            ov_opset.add(
-                one_minus_saturation, ov_opset.multiply(saturation, dg)
-            ),
-        )
-        blue = ov_opset.multiply(
-            value,
-            ov_opset.add(
-                one_minus_saturation, ov_opset.multiply(saturation, db)
-            ),
-        )
+        red = channel_value(dr, one_minus_saturation)
+        green = channel_value(dg, one_minus_saturation)
+        blue = channel_value(db, one_minus_saturation)
         return red, green, blue
 
     images = ov_opset.concat(
